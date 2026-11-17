@@ -1,3 +1,4 @@
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -8,6 +9,28 @@ def load_streamflow(filename):
     dates = data[:, 0].astype('datetime64')
     flows = data[:, 1:].astype(float)
     return dates, flows
+
+
+def summarize(dates, flows, sites):
+    # Excel check for 10163000: =MAX(B2:B2881) is 131 cfs; =AVERAGE(B2:B2881) is 56.95236111 cfs.
+    # Format each gauge's statistics once so the terminal table and CSV contain the same values.
+    header = f"{'Gauge':<12}{'Max (cfs)':>10}   {'Date of max':<16}{'Min (cfs)':>10}{'Avg (cfs)':>11}"
+    print(header)
+    rows = [['Gauge', 'Max (cfs)', 'Date of max', 'Min (cfs)', 'Avg (cfs)']]
+
+    for i, site in enumerate(sites):
+        gauge_flows = flows[:, i]
+        max_index = np.argmax(gauge_flows)
+        max_flow = np.max(gauge_flows)
+        date_of_max = np.datetime_as_string(dates[max_index], unit='m').replace('T', ' ')
+        min_flow = np.min(gauge_flows)
+        average_flow = np.mean(gauge_flows)
+        row = [site, f'{max_flow:.1f}', date_of_max, f'{min_flow:.1f}', f'{average_flow:.1f}']
+        rows.append(row)
+        print(f'{row[0]:<12}{row[1]:>10}   {row[2]:<16}{row[3]:>10}{row[4]:>11}')
+
+    with open('streamflow_summary.csv', 'w', newline='', encoding='utf-8') as summary_file:
+        csv.writer(summary_file).writerows(rows)
 
 
 def plot_streamflow(dates, flows, sites):
@@ -28,3 +51,4 @@ def plot_streamflow(dates, flows, sites):
 sites = ['10163000', '10155200', '10155500', '10154200', '10155000']
 dates, flows = load_streamflow('June-2021-Provo-River-Streamflow-Rates (1).csv')
 plot_streamflow(dates, flows, sites)
+summarize(dates, flows, sites)
